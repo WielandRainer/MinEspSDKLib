@@ -119,6 +119,7 @@ void __attribute__((section(".entry.text"))) call_user_start1(void)
 		GPIO_MUX_CFG &= ~(1<< MUX_SPI0_CLK_BIT);
 		SPI0_CTRL = (SPI0_CTRL & SPI_CTRL_F_MASK) | SPI_CTRL_F40MHZ;
 #endif
+
 #ifdef USE_ALTBOOT
 
 #endif
@@ -132,6 +133,7 @@ void __attribute__((section(".entry.text"))) call_user_start1(void)
 				"movi	a2, 1;"
 				"slli   a1, a2, 30;"
 				);
+
 		ets_run();
 }		
 #else

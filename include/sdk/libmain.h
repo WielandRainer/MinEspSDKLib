@@ -8,7 +8,7 @@
 #ifndef _INCLUDE_LIBMAIN_H_
 #define _INCLUDE_LIBMAIN_H_
 
-#include "sdk/sdk_config.h"
+//#include "sdk/sdk_config.h"
 #include "c_types.h"
 
 //=============================================================================

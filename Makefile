@@ -4,12 +4,12 @@
 #
 #############################################################
 
-ESPOPTION ?= -p COM2 -b 460800
+ESPOPTION ?= -p /dev/ttyUSB0 -b 460800
 
 # SPI_SPEED = 40MHz or 80MHz
-SPI_SPEED?=80
+SPI_SPEED?=40
 # SPI_MODE: QIO, DIO, QOUT, DOUT
-SPI_MODE?=QIO
+SPI_MODE?=QOUT
 # SPI_SIZE: 512KB for all size Flash ! (512 kbytes .. 16 Mbytes Flash autodetect)
 SPI_SIZE?=512
 # 
@@ -24,8 +24,11 @@ DEFAULTADDR := 0x7C000
 BLANKBIN := ./$(FIRMWAREDIR)/blank.bin
 BLANKADDR := 0x7E000
 
+
+ESP_OPEN_SDK:=~/esp8266/esp-open-sdk
 # Base directory for the compiler
-XTENSA_TOOLS_ROOT ?= c:/Espressif/xtensa-lx106-elf/bin
+#XTENSA_TOOLS_ROOT ?= c:/Espressif/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= $(ESP_OPEN_SDK)/xtensa-lx106-elf/bin
 
 #PATH := $(XTENSA_TOOLS_ROOT);$(PATH)
 
@@ -45,7 +48,8 @@ OBJDUMP := $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-objdump
 
 SDK_TOOLS	?= c:/Espressif/utils
 #ESPTOOL		?= $(SDK_TOOLS)/esptool
-ESPTOOL		?= C:/Python27/python.exe $(CWD)esptool.py
+ESPTOOL?=$(ESP_OPEN_SDK)/esptool/esptool.py
+
 
 CSRCS ?= $(wildcard *.c)
 ASRCs ?= $(wildcard *.s)
@@ -90,6 +94,9 @@ CCFLAGS += \
 	-fno-inline-functions	\
 	-Wl,-EL	\
 	-nostdlib
+
+LDFLAGS += \
+	-Wl,-wrap=ppEnqueueRxq
 
 ifeq ($(SPI_SPEED), 26.7)
     freqdiv = 1
@@ -187,7 +194,8 @@ endef
 $(BINODIR)/%.bin: $(IMAGEODIR)/%.out
 	@echo "------------------------------------------------------------------------------"
 	@mkdir -p ../$(FIRMWAREDIR)
-	@$(ESPTOOL) elf2image -o ../$(FIRMWAREDIR)/ $(flashimageoptions) $<
+	#@$(ESPTOOL) elf2image -o ../$(FIRMWAREDIR)/ $(flashimageoptions) $<
+	(PATH=$(XTENSA_TOOLS_ROOT):$$PATH;echo $$PATH;~/esp8266/esp-open-sdk/esptool/esptool.py elf2image -o ../$(FIRMWAREDIR)/ $(flashimageoptions) $<)
 	@echo "------------------------------------------------------------------------------"
 	@echo "Add rapid_loader..."
 	@mv -f ../bin/$(ADDR_FW1).bin ../bin/0.bin 

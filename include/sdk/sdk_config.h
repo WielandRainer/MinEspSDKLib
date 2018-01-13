@@ -4,16 +4,13 @@
 #define DEF_SDK_VERSION 1520 // 1302 // ver 1.3.0 + patch (lib_1.3.0_deep_sleep_plus_freq_offset_plus_freedom_callback_02.zip SDK ver: 1.3.0 compiled @ Aug 19 2015 17:50:07)
 #define SDK_VERSION_TXT "1.5.2"
 
+#include "../config.h"
+
 #define DEFAULT_SOFTAP_IP	0x0104A8C0 // ip 192.168.4.1
 #define DEFAULT_SOFTAP_MASK 0x00FFFFFF // mask 255.255.255.0
 
 #define DEBUGSOO	2  // 0 - откл вывода, 1 - минимум, 2 - норма, >3 - текушая отладка, >4 - удалить что найдется :)
 
-#define DEBUG_UART 1 // включить вывод в загрузчике сообщений, номер UART
-#define DEBUG_UART0_BAUD 115200
-#define DEBUG_UART1_BAUD 230400
-
-#define STARTUP_CPU_CLK 160
 
 #ifndef ICACHE_FLASH // (назначается в MakeFile -DICACHE_FLASH)
 	#define ICACHE_FLASH
