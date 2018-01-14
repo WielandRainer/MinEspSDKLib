@@ -457,19 +457,12 @@ uint8 deep_sleep_flag;
 
 void system_deep_sleep(uint32 time_in_us)
 {
-#ifndef LEAN_AND_MEAN
 	if(wifi_get_opmode() != SOFTAP_MODE) wifi_station_stop();
 	if(wifi_get_opmode() != STATION_MODE) wifi_softap_stop();
 	deep_sleep_flag = 1;
 	ets_timer_disarm(sta_con_timer);
 	ets_timer_setfn(sta_con_timer, system_deep_sleep_instant, 0);
 	ets_timer_arm_new(sta_con_timer,100, 0, 1);
-#else
-	deep_sleep_flag = 1;
-	ets_timer_disarm(sta_con_timer);
-	ets_timer_setfn(sta_con_timer, system_deep_sleep_instant, 0);
-	ets_timer_arm_new(sta_con_timer,100, 0, 1);
-#endif
 }
 
 bool system_deep_sleep_set_option(uint8 option)
