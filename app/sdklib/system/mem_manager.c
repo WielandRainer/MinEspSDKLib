@@ -70,7 +70,8 @@
  * See heap_1.c, heap_2.c and heap_3.c for alternative implementations, and the 
  * memory management pages of http://www.FreeRTOS.org for more information.
  */
-#if 1
+
+#ifndef LEAN_AND_MEAN
 #include <stdlib.h>
 #include <string.h>
 

@@ -527,6 +527,7 @@ void system_timer_reinit(void)
 
 
 
+#ifndef LEAN_AND_MEAN
 void system_print_meminfo(void)
 {
 	os_printf_plus("data  : 0x%x ~ 0x%x, len: %d\n", 0x3FFE8000, _data_end, _data_end - 0x3FFE8000);
@@ -542,6 +543,8 @@ uint32 system_get_free_heap_size(void)
 {
 	xPortGetFreeHeapSize();
 }
+#endif
+
 uint32 system_get_chip_id(void)
 {
 	return (HWREG(PERIPHS_DPORT_BASEADDR,0x50) &  0xFF000000) | (HWREG(PERIPHS_DPORT_BASEADDR, 0x54) & 0xFFFFFF);
@@ -1073,7 +1076,7 @@ bool ICACHE_FLASH_ATTR wifi_set_opmode(uint8 opmode)
 
 bool ICACHE_FLASH_ATTR wifi_set_opmode_current(uint8 opmode)
 {
-	return _wifi_set_opmode(opmode, true);
+	return _wifi_set_opmode(opmode, false); //XXX Fix?  This looks like it was wrong.
 }
 
 extern void * bcn_ie; // ??

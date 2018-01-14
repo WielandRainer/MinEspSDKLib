@@ -13,8 +13,8 @@ void ICACHE_FLASH_ATTR wifi_set_raw_recv_cb(wifi_raw_recv_cb_fn rx_fn)
 void __wrap_ppEnqueueRxq(void * v)
 {
 	if (wifi_mcb)
-		wifi_mcb((struct RxPacket *)( ((void **)v)[4]), v );
-	__real_ppEnqueueRxq(v);
+		if( wifi_mcb((struct RxPacket *)( ((void **)v)[4]), v ) == 0 )
+			__real_ppEnqueueRxq(v);
 }
 
 //I use a less evasive mechanism to send than the other packet thing.

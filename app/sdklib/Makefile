@@ -26,8 +26,7 @@ UP_EXTRACT_DIR = ..
 COMPONENTS_libsdk = \
 	system/libaddmmain.a	\
 	phy/libaddmphy.a	\
-	pp/libaddpp.a	\
-	wpa/libaddwpa.a
+	pp/libaddpp.a
 		
 ifdef USE_OPEN_LWIP
 COMPONENTS_libsdk += lwip/liblwip.a	
@@ -43,8 +42,7 @@ GEN_LIBS = libsdk.a
 SUBDIRS =	\
 	system	\
 	phy	\
-	pp	\
-	wpa
+	pp
 		
 ifdef USE_OPEN_LWIP
 SUBDIRS += lwip
@@ -59,11 +57,10 @@ ADDLIBS_libsdk = \
 	libmmain.a	\
 	libmphy.a	\
 	libpp.a	\
-	libmwpa.a	\
-	libcrypto.a	\
 	libnet80211.a
 
 ifndef LEAN_AND_MEAN
+
 ifndef USE_OPEN_LWIP 
 ADDLIBS_libsdk += \
 	liblwipif.a	\
@@ -71,8 +68,17 @@ ADDLIBS_libsdk += \
 endif
 
 ifndef USE_OPEN_DHCPS
-ADDLIBS_libsdk += libdhcps.a
+	ADDLIBS_libsdk += libdhcps.a
 endif
+
+ADDLIBS_lbsdk += \
+	libmwpa.a
+
+COMPONENTS_libsdk += \
+	wpa/libaddwpa.a \
+	libcrypto.a
+
+SUBDIRS += 	wpa
 endif
 
 endif # } PDIR

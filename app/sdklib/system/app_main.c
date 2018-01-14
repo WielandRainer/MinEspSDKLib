@@ -161,6 +161,7 @@ void __attribute__((section(".entry.text"))) call_user_start1(void)
 		// Инициализация
 		startup();
 		// Передача управления ROM-BIOS
+
 		ets_run();
 }
 //-----------------------------------------------------------------------------
@@ -426,6 +427,7 @@ void ICACHE_FLASH_ATTR startup_uart_init(void)
 //=============================================================================
 // startup()
 //-----------------------------------------------------------------------------
+void user_rf_pre_init();
 void ICACHE_FLASH_ATTR startup(void)
 {
 	ets_set_user_start(call_user_start); // установить адрес для возможной перезагрузки сразу в call_user_start()
@@ -437,6 +439,7 @@ void ICACHE_FLASH_ATTR startup(void)
 			rom_i2c_writeReg(103,4,2,145);
 		}
 	}
+
 #if	STARTUP_CPU_CLK == 160
 	system_overclock(); // set CPU CLK 160 MHz
 #endif
@@ -472,7 +475,10 @@ void ICACHE_FLASH_ATTR startup(void)
 	}
 #endif
 	//
+
+#ifndef LEAN_AND_MEAN
 	iram_buf_init(); // определить и разметить свободную IRAM
+#endif
 	//
 	prvHeapInit(); // инициализация менеджера памяти heap
 	//
@@ -506,7 +512,11 @@ void ICACHE_FLASH_ATTR startup(void)
 	// при wifi_set_sleep_type: NONE = 25, LIGHT = 3000 + reset_noise_timer(3000), MODEM = 25 + reset_noise_timer(100);
 #endif
 	//
+
+#ifndef LEAN_AND_MEAN
 	tst_cfg_wifi(); // Проверить переменные установок wifi
+#endif
+
 	//
 #ifdef USE_DUAL_FLASH
 	overlap_hspi_init(); // не используется для модулей с одной flash!
@@ -537,6 +547,11 @@ void ICACHE_FLASH_ATTR startup(void)
 	spi_flash_read(esp_init_data_default_addr,(uint32 *)buf, esp_init_data_default_size); // esp_init_data_default.bin
 #endif
 
+
+#ifdef LEAN_AND_MEAN
+	user_rf_pre_init();
+#endif
+
 	//
 	if(buf[0] != 5) { // первый байт esp_init_data_default.bin не равен 5 ? - бардак!
 #ifdef DEBUG_UART
@@ -545,10 +560,9 @@ void ICACHE_FLASH_ATTR startup(void)
 		ets_memcpy(buf, esp_init_data_default, esp_init_data_default_size);
 	}
 //	system_restoreclock(); // STARTUP_CPU_CLK
+
 	init_wifi(buf, info.st_mac); // инициализация оборудования WiFi
 
-
-#ifndef LEAN_AND_MEAN
 #if DEF_SDK_VERSION >= 1400
 	if(buf[0xf8] == 1 || phy_rx_gain_dc_flag == 1) { // сохранить новые калибровки RF/VCC33 ?
 #ifdef DEBUG_UART
@@ -556,7 +570,6 @@ void ICACHE_FLASH_ATTR startup(void)
 #endif
 		wifi_param_save_protect_with_check(esp_init_data_default_sec, flashchip_sector_size, buf, SIZE_SAVE_SYS_CONST);
 	}
-#endif
 
 #endif
 	os_free(buf);
@@ -662,11 +675,14 @@ void ICACHE_FLASH_ATTR puts_buf(uint8 ch)
 const char aFATAL_ERR_R6PHY[] ICACHE_RODATA_ATTR = "register_chipv6_phy";
 void ICACHE_FLASH_ATTR init_wifi(uint8 * init_data, uint8 * mac)
 {
+
 #ifdef DEBUG_UART
 	uart_wait_tx_fifo_empty();
 	UartDev.trx_buff.TrxBuffSize = 0;
 	ets_install_putc1(puts_buf);
 #endif
+	//This line seems to use a fair bit of power. XXX CNL
+	//I wish I understood more about it.
 	if(register_chipv6_phy(init_data)){
 		fatal_error(FATAL_ERR_R6PHY, init_wifi, (void *)aFATAL_ERR_R6PHY);
 	}
@@ -676,6 +692,7 @@ void ICACHE_FLASH_ATTR init_wifi(uint8 * init_data, uint8 * mac)
 	UartDev.trx_buff.TrxBuffSize = TX_BUFF_SIZE;
 #endif
 	phy_disable_agc();
+
 	ieee80211_phy_init(g_ic.g.wifi_store.phy_mode); // phy_mode
 	lmacInit();
 	wDev_Initialize(mac);

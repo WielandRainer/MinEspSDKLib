@@ -10,100 +10,7 @@
 #include "user_interface.h"
 #include "sdk/rom2ram.h"
 #include "esp_rawsend.h"
-#if 0 // для расчета ипользования памяти meSDK = 0, для примера = 1
-/******************************************************************************
- * FunctionName : wifi_handle_event_cb
- * Description  :
- * Parameters   : none
- * Returns      : none
- *******************************************************************************/
-void ICACHE_FLASH_ATTR wifi_handle_event_cb(System_Event_t *evt)
-{
-	int i;
-	os_printf("WiFi event %x\n", evt->event);
-	switch (evt->event) {
-		case EVENT_SOFTAPMODE_PROBEREQRECVED:
-			os_printf("Probe Request (MAC:" MACSTR ", RSSI:%d)\n",
-					MAC2STR(evt->event_info.ap_probereqrecved.mac),
-					evt->event_info.ap_probereqrecved.rssi);
-			break;
-		case EVENT_STAMODE_CONNECTED:
-			os_printf("Connect to ssid %s, channel %d\n",
-					evt->event_info.connected.ssid,
-					evt->event_info.connected.channel);
-			break;
-		case EVENT_STAMODE_DISCONNECTED:
-			os_printf("Disconnect from ssid %s, reason %d\n",
-					evt->event_info.disconnected.ssid,
-					evt->event_info.disconnected.reason);
-			break;
-		case EVENT_STAMODE_AUTHMODE_CHANGE:
-			os_printf("New AuthMode: %d -> %d\n",
-					evt->event_info.auth_change.old_mode,
-					evt->event_info.auth_change.new_mode);
-			break;
-		case EVENT_STAMODE_GOT_IP:
-			os_printf("Station ip:" IPSTR ", mask:" IPSTR ", gw:" IPSTR "\n",
-					IP2STR(&evt->event_info.got_ip.ip),
-					IP2STR(&evt->event_info.got_ip.mask),
-					IP2STR(&evt->event_info.got_ip.gw));
-			break;
-		case EVENT_SOFTAPMODE_STACONNECTED:
-			i = wifi_softap_get_station_num(); // Number count of stations which connected to ESP8266 soft-AP
-			os_printf("Station[%u]: " MACSTR " join, AID = %d\n",
-					i,
-					MAC2STR(evt->event_info.sta_connected.mac),
-					evt->event_info.sta_connected.aid);
-			break;
-		case EVENT_SOFTAPMODE_STADISCONNECTED:
-			i = wifi_softap_get_station_num();
-			os_printf("Station[%u]: " MACSTR " leave, AID = %d\n",
-					i,
-					MAC2STR(evt->event_info.sta_disconnected.mac),
-					evt->event_info.sta_disconnected.aid);
-			break;
-		case EVENT_STAMODE_DHCP_TIMEOUT:
-			os_printf("DHCP timeot\n");
-			break;
-/*		default:
-			break; */
-		}
-}
-
-/******************************************************************************
- * FunctionName : init_done_cb
- * Description  :
- * Parameters   : none
- * Returns      : none
- *******************************************************************************/
-void ICACHE_FLASH_ATTR init_done_cb(void)
-{
-    os_printf("\nSDK Init - Ok\nCurrent 'heap' size: %d bytes\n", system_get_free_heap_size());
-	os_printf("Set CPU CLK: %u MHz\n", ets_get_cpu_frequency());
-}
-
-extern uint32 _lit4_start[]; // addr start BSS in IRAM
-extern uint32 _lit4_end[]; // addr end BSS in IRAM
-
-/******************************************************************************
- * FunctionName : user_init
- * Description  : entry of user application, init user function here
- * Parameters   : none
- * Returns      : none
- *******************************************************************************/
-void ICACHE_FLASH_ATTR user_init(void) {
-	if(eraminfo.size > 0) os_printf("Found free IRAM: base: %p, size: %d bytes\n", eraminfo.base,  eraminfo.size);
-	os_printf("System memory:\n");
-    system_print_meminfo();
-    os_printf("bssi  : 0x%x ~ 0x%x, len: %d\n", &_lit4_start, &_lit4_end, (uint32)(&_lit4_end) - (uint32)(&_lit4_start));
-    os_printf("free  : 0x%x ~ 0x%x, len: %d\n", (uint32)(&_lit4_end), (uint32)(eraminfo.base) + eraminfo.size, (uint32)(eraminfo.base) + eraminfo.size - (uint32)(&_lit4_end));
-    os_printf("Start 'heap' size: %d bytes\n", system_get_free_heap_size());
-	os_printf("Set CPU CLK: %u MHz\n", ets_get_cpu_frequency());
-	system_deep_sleep_set_option(0);
-	wifi_set_event_handler_cb(wifi_handle_event_cb);
-	system_init_done_cb(init_done_cb);
-}
-#else
+#include "sdk/libmain.h"
 
 
 
@@ -114,22 +21,16 @@ int counter, count2, count3;
 
 
 uint8_t mypacket[30+256] = {  //256 = max size of additional payload
-	0x08, //Frame type, 0x80 = beacon, Tried data, but seems to have been filtered on RX side by other ESP
+	0x88, //Frame type, 0x80 = beacon, Tried data (0x08), but seems to have been filtered on RX side by other ESP;; 0x88 is unused.
 	0x00, 0x00, 0x00, 
 	0xff,0xff,0xff,0xff,0xff,0xff,
-	0x00,0xaa,0xff,0xff,0xff,0xff,
+	0x00,0xaa,0xff,0xff,0xff,0xff, //SRC Mac, fill in.
 	0xff,0xff,0xff,0xff,0xff,0xff,
 	0x00, 0x00,  //Sequence number, cleared by espressif
 	0x82, 0x66,	 //"Mysterious OLPC stuff"
 	0x82, 0x66, 0x00, 0x00, //????
 	
 };
-
-void prom(uint8 *buf, uint16 len)
-{
-	count3++;
-
-}
 
 
 extern uint8 system_option[250];
@@ -196,7 +97,23 @@ void system_deep_sleep_instant(void *timer_arg); // В ранних SDK _sys_dee
 int hit_timer = 0;
 void idle(void * v) 
 {
-	if( hit_timer )	ninjasleep(1000000);
+	if( hit_timer )
+	{
+		system_deep_sleep_set_option(4); //0 = default, 1 = cal, 2 = nocal, 4 = cal depends.
+		ninjasleep(100000);
+	}
+}
+
+void wdev_go_sniffer();
+void wDevEnableRx();
+void wDevDisableRx(); 
+
+
+
+void prom_cb( uint8_t * buf, uint16_t len )
+{
+	counter++;
+	os_printf( "PROMCB callback #%d: %d bytes\n", counter, len );
 }
 
 
@@ -210,16 +127,34 @@ void sent_freedom_cb(uint8 status)
 	}
 	if( b == MAX_BUFFERS ) return;
 */
+//	wdev_go_sniffer(); //Sniff only.  Do not allow responses to packets.
+
+/*
+				wDevDisableRx();
+				volatile uint32 * preg = (volatile uint32 *)0x3FF20000;
+				preg[27] &= 0xFFE;
+				preg[27] &= 0xFFD;
+				preg[27] &= 0x7B;
+				g_ic.c[446]= 1;
+				wdev_go_sniffer();
+				wDevEnableRx();
+*/
+
 	count2++;
+	//wifi_set_opmode_current(0);
+	wifi_set_promiscuous_rx_cb(prom_cb);
+	wifi_promiscuous_enable(1);
 }
 
 
-void  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
+
+
+int  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 {
 	counter++;
 #if 1
 	int len = pkt->rx_ctl.legacy_length;
-	os_printf("Recv callback #%d: %d bytes\n", counter++, len);
+	os_printf("rx:%d\n", len);
 #if 0
 	os_printf("Channel: %d PHY: %d\n", pkt->rx_ctl.channel, wifi_get_phy_mode());
 	int i;
@@ -229,6 +164,7 @@ void  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 	}
 #endif
 #endif
+	return 1; //don't pass packet on.
 }
 
 void myTimer( )
@@ -240,7 +176,9 @@ void myTimer( )
 
 static os_timer_t some_timer;
 
-void ICACHE_FLASH_ATTR init_done_cb(void)
+void wDev_SetMacAddress( int i, void * v );
+
+void init_done_cb(void)
 {
 
 	wifi_set_raw_recv_cb( rx_func );
@@ -248,13 +186,16 @@ void ICACHE_FLASH_ATTR init_done_cb(void)
 	wifi_register_send_pkt_freedom_cb( sent_freedom_cb );
 //	wifi_promiscuous_enable(1);
 //	wifi_set_promiscuous_rx_cb(prom
-	wifi_set_channel(6);
 
 	os_timer_disarm(&some_timer);
 	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
-	os_timer_arm(&some_timer, 100, 1); //The underlying API expects it's slow ticks to average out to 50ms.
+	os_timer_arm(&some_timer, 16, 1); // wait 20ms before shutting back down.
 
-	os_printf( "Init done\n" );
+	read_macaddr_from_otp( &mypacket[10] );
+	mypacket[10] |= 2; //Locally administered.
+
+//	wDev_SetMacAddress(0, "abcdef");
+//	wDev_SetMacAddress(1, "abcdef");
 
 	int txpakid = 0;
 		ets_strcpy( mypacket+30, "ESPEED" );
@@ -268,22 +209,36 @@ void ICACHE_FLASH_ATTR init_done_cb(void)
 		mypacket[42] = 0;
 		mypacket[43] = 0;
 
-
-	wifi_send_pkt_freedom( mypacket,  30 + 16, true) ; 
+	{
+		wifi_set_user_fixed_rate( 3, PHY_RATE_6 );  //Use enum FIXED_RATE
+		wifi_send_pkt_freedom( mypacket,  30 + 16, true) ; 
+	}
 }
 
 void ICACHE_FLASH_ATTR user_init(void) {
 
 	ets_idle_cb = idle;
-//	system_deep_sleep_set_option(2);
-	system_deep_sleep_set_option(0);
 
-	wifi_set_opmode(2);
-	wifi_set_channel(6);
+	struct softap_config sac;
+	wifi_softap_get_config(&sac);
+	sac.channel=7;
+	sac.ssid_len = 0;
+	sac.beacon_interval = 60000;
+	sac.authmode = 0;
+	sac.ssid_hidden = 1;
+	sac.max_connection = 0;
+	wifi_softap_set_config_current(&sac);
 
+	wifi_set_user_fixed_rate( 3, PHY_RATE_6 );  //Use enum FIXED_RATE
+	wifi_set_opmode_current(2);
 	//wifi_set_event_handler_cb(wifi_handle_event_cb);
 	system_init_done_cb(init_done_cb);
 }
-#endif
 
 
+
+void user_rf_pre_init()
+{
+	system_phy_set_powerup_option(0); //fastest possible.
+	system_phy_set_rfoption( 2 ); //1 forces cal; 2 disables cal.
+}

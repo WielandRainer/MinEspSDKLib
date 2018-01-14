@@ -6,6 +6,12 @@
 
 ESPOPTION ?= -p /dev/ttyUSB0 -b 460800
 
+-include common.mk
+-include ../common.mk
+-include ../../common.mk
+-include ../../../common.mk
+-include ../../../../common.mk
+
 
 # SPI_SPEED = 40MHz or 80MHz
 SPI_SPEED?=80

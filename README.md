@@ -6,6 +6,8 @@ I wanted a /super/ minimal SDK, one that didn't even have lwip.
 
 Just enough to wake up, chirp out and go back to deep sleep.
 
+Most modifications have been made by adding the LEAN_AND_MEAN directive.  Enabling this pretty much breaks the chip for anything other than the unusual application I'm using.
+
 
 Minimalist SDK on ESP8266ex v1.5.2
 ---
