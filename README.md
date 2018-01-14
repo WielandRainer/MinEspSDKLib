@@ -1,4 +1,12 @@
 # MinEspSDK (meSDK)
+
+Modified by C.Lohr for a specific purpose.
+
+I wanted a /super/ minimal SDK, one that didn't even have lwip.
+
+Just enough to wake up, chirp out and go back to deep sleep.
+
+
 Minimalist SDK on ESP8266ex v1.5.2
 ---
 

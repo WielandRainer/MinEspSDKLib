@@ -12,6 +12,12 @@
 #
 TARGET = eagle
 
+-include common.mk
+-include ../common.mk
+-include ../../common.mk
+-include ../../../common.mk
+-include ../../../../common.mk
+
 ifndef PDIR # {
 GEN_IMAGES = eagle.app.v6.out
 GEN_BINS = eagle.app.v6.bin
@@ -61,6 +67,11 @@ CONFIGURATION_DEFINES +=	\
 			-DPBUF_RSV_FOR_WLAN	\
 			-DLWIP_OPEN_SRC	\
 			-DEBUF_LWIP
+
+ifdef LEAN_AND_MEAN
+CONFIGURATION_DEFINES += \
+	-DLEAN_AND_MEAN
+endif
 
 DEFINES += $(CONFIGURATION_DEFINES)
 

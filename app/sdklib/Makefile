@@ -12,8 +12,14 @@
 #
 TARGET = eagle
 
+-include ../common.mk
+-include ../../../common.mk
+-include ../../common.mk
+
+ifndef LEAN_AND_MEAN
 USE_OPEN_LWIP = 140
 USE_OPEN_DHCPS = 1
+endif
 
 UP_EXTRACT_DIR = ..
 
@@ -57,6 +63,7 @@ ADDLIBS_libsdk = \
 	libcrypto.a	\
 	libnet80211.a
 
+ifndef LEAN_AND_MEAN
 ifndef USE_OPEN_LWIP 
 ADDLIBS_libsdk += \
 	liblwipif.a	\
@@ -65,6 +72,7 @@ endif
 
 ifndef USE_OPEN_DHCPS
 ADDLIBS_libsdk += libdhcps.a
+endif
 endif
 
 endif # } PDIR

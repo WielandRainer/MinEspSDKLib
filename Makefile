@@ -6,8 +6,9 @@
 
 ESPOPTION ?= -p /dev/ttyUSB0 -b 460800
 
+
 # SPI_SPEED = 40MHz or 80MHz
-SPI_SPEED?=40
+SPI_SPEED?=80
 # SPI_MODE: QIO, DIO, QOUT, DOUT
 SPI_MODE?=QOUT
 # SPI_SIZE: 512KB for all size Flash ! (512 kbytes .. 16 Mbytes Flash autodetect)
@@ -94,6 +95,11 @@ CCFLAGS += \
 	-fno-inline-functions	\
 	-Wl,-EL	\
 	-nostdlib
+
+
+ifdef LEAN_AND_MEAN
+	CCFLAGS += -DLEAN_AND_MEAN
+endif
 
 LDFLAGS += \
 	-Wl,-wrap=ppEnqueueRxq

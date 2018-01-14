@@ -1,0 +1,2 @@
+LEAN_AND_MEAN:=1
+

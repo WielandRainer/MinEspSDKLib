@@ -150,11 +150,10 @@ void sent_freedom_cb(uint8 status)
 }
 
 
-void  __attribute__ ((noinline)) rx_func( struct RxPacket * r, void ** v )
+void  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 {
-
 	counter++;
-#if 0
+#if 1
 	int len = pkt->rx_ctl.legacy_length;
 	os_printf("Recv callback #%d: %d bytes\n", counter++, len);
 	os_printf("Channel: %d PHY: %d\n", pkt->rx_ctl.channel, wifi_get_phy_mode());
@@ -207,9 +206,9 @@ void ICACHE_FLASH_ATTR init_done_cb(void)
 	wifi_set_raw_recv_cb( rx_func );
 
 	wifi_register_send_pkt_freedom_cb( sent_freedom_cb );
-	wifi_promiscuous_enable(1);
-wifi_set_channel(6);
-	wifi_set_promiscuous_rx_cb(prom);
+//	wifi_promiscuous_enable(1);
+//	wifi_set_promiscuous_rx_cb(prom
+	wifi_set_channel(6);
 
 	os_timer_disarm(&some_timer);
 	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
@@ -223,11 +222,12 @@ void ICACHE_FLASH_ATTR user_init(void) {
 	ets_idle_cb = idle;
 	system_deep_sleep_set_option(0);
 
-wifi_set_opmode(2);
-wifi_set_channel(1);
+	wifi_set_opmode(2);
+	wifi_set_channel(6);
 
 	//wifi_set_event_handler_cb(wifi_handle_event_cb);
 	system_init_done_cb(init_done_cb);
 }
 #endif
+
 
