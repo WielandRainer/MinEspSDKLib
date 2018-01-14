@@ -131,8 +131,12 @@ void prom(uint8 *buf, uint16 len)
 
 }
 
+void system_deep_sleep_instant(void *timer_arg); // В ранних SDK _sys_deep_sleep_timer()
+
+int hit_timer = 0;
 void idle(void * v) 
 {
+	if( hit_timer )	system_deep_sleep(5000 );
 }
 
 
@@ -156,6 +160,7 @@ void  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 #if 1
 	int len = pkt->rx_ctl.legacy_length;
 	os_printf("Recv callback #%d: %d bytes\n", counter++, len);
+#if 0
 	os_printf("Channel: %d PHY: %d\n", pkt->rx_ctl.channel, wifi_get_phy_mode());
 	int i;
 	for( i = 0 ; i < len; i++ )
@@ -163,22 +168,34 @@ void  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 		os_printf( "%02x (%c)", pkt->data[i], (pkt->data[i]>31)?pkt->data[i]:' ' );
 	}
 #endif
+#endif
 }
 
 void myTimer( )
 {
-	//Do something fancy like send a raw packet.
-	//char packet[100];
-#if 0
-	packet[0] = '\xde';
-	packet[1] = '\xad';
-	packet[2] = '\xbe';	/* This will become \x00 */
-	packet[3] = '\xef';	/* This too. */
-	ets_sprintf(packet + 4, "%s%s%s%s%s", "HELLO WORLD!", "HELLO WORLD!", "HELLO WORLD!", "HELLO WORLD!", "HaLLO w0RLD!");
-#endif
+	//wifi_send_raw_packet(packet, sizeof packet);
+	os_printf( "%d/%d/%d/%d\n", counter, count2, count3, wifi_get_opmode() );
+	hit_timer = 1;
+}
 
-		//printf( "%d\n", debugccount );
-		//uart0_sendStr("k");
+static os_timer_t some_timer;
+
+void ICACHE_FLASH_ATTR init_done_cb(void)
+{
+
+	wifi_set_raw_recv_cb( rx_func );
+
+	wifi_register_send_pkt_freedom_cb( sent_freedom_cb );
+//	wifi_promiscuous_enable(1);
+//	wifi_set_promiscuous_rx_cb(prom
+	wifi_set_channel(6);
+
+	os_timer_disarm(&some_timer);
+	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
+	os_timer_arm(&some_timer, 100, 1); //The underlying API expects it's slow ticks to average out to 50ms.
+
+	os_printf( "Init done\n" );
+
 	int txpakid = 0;
 		ets_strcpy( mypacket+30, "ESPEED" );
 		txpakid++;
@@ -193,35 +210,12 @@ void myTimer( )
 
 
 	wifi_send_pkt_freedom( mypacket,  30 + 16, true) ; 
-	//wifi_send_raw_packet(packet, sizeof packet);
-	os_printf( "%d/%d/%d/%d\n", counter, count2, count3, wifi_get_opmode() );
-
-}
-
-//static os_timer_t some_timer;
-
-void ICACHE_FLASH_ATTR init_done_cb(void)
-{
-
-	wifi_set_raw_recv_cb( rx_func );
-
-	wifi_register_send_pkt_freedom_cb( sent_freedom_cb );
-//	wifi_promiscuous_enable(1);
-//	wifi_set_promiscuous_rx_cb(prom
-	wifi_set_channel(6);
-
-/*
-	os_timer_disarm(&some_timer);
-	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
-	os_timer_arm(&some_timer, 100, 1); //The underlying API expects it's slow ticks to average out to 50ms.
-*/
-	os_printf( "Init done\n" );
-	myTimer();
 }
 
 void ICACHE_FLASH_ATTR user_init(void) {
 
 	ets_idle_cb = idle;
+//	system_deep_sleep_set_option(2);
 	system_deep_sleep_set_option(0);
 
 	wifi_set_opmode(2);
