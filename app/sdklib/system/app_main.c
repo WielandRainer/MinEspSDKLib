@@ -491,7 +491,9 @@ void ICACHE_FLASH_ATTR startup(void)
 	info.ap_gw = info.ap_ip = DEFAULT_SOFTAP_IP; // 0x104A8C0; ip 192.168.4.1
 	info.ap_mask = DEFAULT_SOFTAP_MASK; // 0x00FFFFFF; 255.255.255.0
 	ets_timer_init();
+
 	lwip_init();
+
 //	espconn_init(); // данный баг не используется
 #if DEF_SDK_VERSION >= 1200
 	lwip_timer_interval = 25; // 25 ms
@@ -510,19 +512,21 @@ void ICACHE_FLASH_ATTR startup(void)
 	overlap_hspi_init(); // не используется для модулей с одной flash!
 #endif
 	//
+
+
 #if DEF_SDK_VERSION >= 1400
 	uint8 * buf = os_malloc(SIZE_SAVE_SYS_CONST);
 	spi_flash_read(esp_init_data_default_addr,(uint32 *)buf, SIZE_SAVE_SYS_CONST); // esp_init_data_default.bin + ???
-#if DEF_SDK_VERSION >= 1410
-	if(buf[112] == 3) g_ic.c[471] = 1;
-	else g_ic.c[471] = 0;
-#endif
+	#if DEF_SDK_VERSION >= 1410
+		if(buf[112] == 3) g_ic.c[471] = 1;
+		else g_ic.c[471] = 0;
+	#endif
 	buf[0xf8] = 0;
 	phy_rx_gain_dc_table = &buf[0x100];
 	phy_rx_gain_dc_flag = 0;
 	// **
 	// user_rf_pre_init(); // не использется, т.к. мождно вписать что угодно и тут :)
-    //	system_phy_set_powerup_option(0);
+	//	system_phy_set_powerup_option(0);
 	//	system_phy_set_rfoption(0);
 	// **
 #elif DEF_SDK_VERSION >= 1300
@@ -532,6 +536,7 @@ void ICACHE_FLASH_ATTR startup(void)
 	uint8 *buf = (uint8 *)os_malloc(esp_init_data_default_size); // esp_init_data_default.bin
 	spi_flash_read(esp_init_data_default_addr,(uint32 *)buf, esp_init_data_default_size); // esp_init_data_default.bin
 #endif
+
 	//
 	if(buf[0] != 5) { // первый байт esp_init_data_default.bin не равен 5 ? - бардак!
 #ifdef DEBUG_UART
@@ -541,6 +546,9 @@ void ICACHE_FLASH_ATTR startup(void)
 	}
 //	system_restoreclock(); // STARTUP_CPU_CLK
 	init_wifi(buf, info.st_mac); // инициализация оборудования WiFi
+
+
+#ifndef LEAN_AND_MEAN
 #if DEF_SDK_VERSION >= 1400
 	if(buf[0xf8] == 1 || phy_rx_gain_dc_flag == 1) { // сохранить новые калибровки RF/VCC33 ?
 #ifdef DEBUG_UART
@@ -548,6 +556,8 @@ void ICACHE_FLASH_ATTR startup(void)
 #endif
 		wifi_param_save_protect_with_check(esp_init_data_default_sec, flashchip_sector_size, buf, SIZE_SAVE_SYS_CONST);
 	}
+#endif
+
 #endif
 	os_free(buf);
 	//
@@ -593,6 +603,9 @@ void ICACHE_FLASH_ATTR startup(void)
 #endif
 	WDT_FEED = WDT_FEED_MAGIC; // WDT
 	//
+
+#ifndef LEAN_AND_MEAN
+
 	int wfmode = g_ic.g.wifi_store.wfmode[0]; // g_ic.c[0x214] (+532) SDK 1.2.0 // SDK 1.3.0 g_ic.c[472]
 	wifi_mode_set(wfmode);
 	if(wfmode & 1)  wifi_station_start();
@@ -612,6 +625,7 @@ void ICACHE_FLASH_ATTR startup(void)
 	if(wfmode & 2)  wifi_softap_start();
 #endif
 
+
 #if DEF_SDK_VERSION >= 1110
 	if(wfmode == 1) netif_set_default(*g_ic.g.netif1);	// struct netif *
 #else
@@ -623,6 +637,13 @@ void ICACHE_FLASH_ATTR startup(void)
 	}
 #endif
 	if(wifi_station_get_auto_connect()) wifi_station_connect();
+#else
+
+	wifi_mode_set(2);
+	wifi_softap_start(0);
+
+#endif
+
 	if(done_cb != NULL) done_cb();
 }
 //-----------------------------------------------------------------------------

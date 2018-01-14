@@ -117,7 +117,7 @@ uint8_t mypacket[30+256] = {  //256 = max size of additional payload
 	0x08, //Frame type, 0x80 = beacon, Tried data, but seems to have been filtered on RX side by other ESP
 	0x00, 0x00, 0x00, 
 	0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,
+	0x00,0xaa,0xff,0xff,0xff,0xff,
 	0xff,0xff,0xff,0xff,0xff,0xff,
 	0x00, 0x00,  //Sequence number, cleared by espressif
 	0x82, 0x66,	 //"Mysterious OLPC stuff"
@@ -198,7 +198,7 @@ void myTimer( )
 
 }
 
-static os_timer_t some_timer;
+//static os_timer_t some_timer;
 
 void ICACHE_FLASH_ATTR init_done_cb(void)
 {
@@ -210,11 +210,13 @@ void ICACHE_FLASH_ATTR init_done_cb(void)
 //	wifi_set_promiscuous_rx_cb(prom
 	wifi_set_channel(6);
 
+/*
 	os_timer_disarm(&some_timer);
 	os_timer_setfn(&some_timer, (os_timer_func_t *)myTimer, NULL);
 	os_timer_arm(&some_timer, 100, 1); //The underlying API expects it's slow ticks to average out to 50ms.
-
+*/
 	os_printf( "Init done\n" );
+	myTimer();
 }
 
 void ICACHE_FLASH_ATTR user_init(void) {
