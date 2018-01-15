@@ -11,11 +11,11 @@
 #include "sdk/rom2ram.h"
 #include "esp_rawsend.h"
 #include "sdk/libmain.h"
-
+#include "sdk/fatal_errs.h"
 
 
 ETSTimer rawsend_timer DATA_IRAM_ATTR; 
-
+extern volatile uint32 rtc_ram_[64];	
 
 int counter, count2, count3;
 
@@ -32,7 +32,7 @@ uint8_t mypacket[30+256] = {  //256 = max size of additional payload
 	
 };
 
-
+int v33;
 extern uint8 system_option[250];
 //#define deep_sleep_option system_option[241]
 bool ICACHE_FLASH_ATTR deep_sleep_set_option(uint8 option);
@@ -99,8 +99,7 @@ void idle(void * v)
 {
 	if( hit_timer )
 	{
-		system_deep_sleep_set_option(4); //0 = default, 1 = cal, 2 = nocal, 4 = cal depends.
-		ninjasleep(100000);
+		ninjasleep(10000000);
 	}
 }
 
@@ -170,17 +169,16 @@ int  __attribute__ ((noinline)) rx_func( struct RxPacket * pkt, void ** v )
 void myTimer( )
 {
 	//wifi_send_raw_packet(packet, sizeof packet);
-	os_printf( "%d/%d/%d/%d\n", counter, count2, count3, wifi_get_opmode() );
+	//os_printf( "%d/%d/%d/%d\n", counter, count2, count3, wifi_get_opmode() );
 	hit_timer = 1;
 }
 
 static os_timer_t some_timer;
-
+uint32_t runid = 0;
 void wDev_SetMacAddress( int i, void * v );
 
 void init_done_cb(void)
 {
-
 	wifi_set_raw_recv_cb( rx_func );
 
 	wifi_register_send_pkt_freedom_cb( sent_freedom_cb );
@@ -194,21 +192,18 @@ void init_done_cb(void)
 	read_macaddr_from_otp( &mypacket[10] );
 	mypacket[10] |= 2; //Locally administered.
 
-//	wDev_SetMacAddress(0, "abcdef");
-//	wDev_SetMacAddress(1, "abcdef");
 
-	int txpakid = 0;
-		ets_strcpy( mypacket+30, "ESPEED" );
-		txpakid++;
-		mypacket[36] = txpakid>>24;
-		mypacket[37] = txpakid>>16;
-		mypacket[38] = txpakid>>8;
-		mypacket[39] = txpakid>>0;
-		mypacket[40] = 0;
-		mypacket[41] = 0;
-		mypacket[42] = 0;
-		mypacket[43] = 0;
-
+	v33 = system_get_vdd33();
+	ets_strcpy( mypacket+30, "VOLTTE" );
+	mypacket[36] = runid>>24;
+	mypacket[37] = runid>>16;
+	mypacket[38] = runid>>8;
+	mypacket[39] = runid>>0;
+	mypacket[40] = v33>>8;
+	mypacket[41] = v33;
+	mypacket[42] = 0;
+	mypacket[43] = 0;
+	rtc_ram_[56] = runid+1;
 	{
 		wifi_set_user_fixed_rate( 3, PHY_RATE_6 );  //Use enum FIXED_RATE
 		wifi_send_pkt_freedom( mypacket,  30 + 16, true) ; 
@@ -237,8 +232,38 @@ void ICACHE_FLASH_ATTR user_init(void) {
 
 
 
-void user_rf_pre_init()
+void user_rf_pre_init(uint8_t * init_data)
 {
-	system_phy_set_powerup_option(0); //fastest possible.
-	system_phy_set_rfoption( 2 ); //1 forces cal; 2 disables cal.
+	struct rst_info * rst_inf = (struct rst_info *)&RTC_MEM(0);
+
+	if( rst_inf->reason != RST_EVENT_DEEP_SLEEP )
+	{
+		runid = rtc_ram_[56] = 0;
+	}
+	else
+	{
+		runid = rtc_ram_[56];
+	}
+	init_data[107] = 0xff;
+
+	if( (runid & 0x3f) == 0 ) //Every 64 times, do a full RF recalibration.
+	{
+		//0: RF initialization when powerup depends on byte 114 of 
+		//		esp_init_data_default.bin (0 ~ 127 bytes). For more details please see 
+		//		ESP8266 SDK Getting Started Guide
+		//1: RF initialization only calibrate VDD33 and Tx power which will take about 
+		//		18 ms; this reduces the current consumption. 
+		//2: RF initialization only calibrate VDD33 which will take about 2 ms; this has 
+		//		the least current consumption. 
+		//3: RF initialization will do the whole RF calibration which will take about 200 
+		//		ms; this increases the current consumption
+		system_phy_set_powerup_option(3); 
+
+		system_phy_set_rfoption( 1 ); //1 forces cal; 2 disables cal.
+	}
+	else
+	{
+		system_phy_set_powerup_option(0); //fastest possible.
+		system_phy_set_rfoption( 2 ); //1 forces cal; 2 disables cal.
+	}
 }

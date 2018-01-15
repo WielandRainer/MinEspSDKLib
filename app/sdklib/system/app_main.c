@@ -427,7 +427,7 @@ void ICACHE_FLASH_ATTR startup_uart_init(void)
 //=============================================================================
 // startup()
 //-----------------------------------------------------------------------------
-void user_rf_pre_init();
+void user_rf_pre_init(uint8_t * init_data );
 void ICACHE_FLASH_ATTR startup(void)
 {
 	ets_set_user_start(call_user_start); // установить адрес для возможной перезагрузки сразу в call_user_start()
@@ -549,7 +549,7 @@ void ICACHE_FLASH_ATTR startup(void)
 
 
 #ifdef LEAN_AND_MEAN
-	user_rf_pre_init();
+	user_rf_pre_init( buf );
 #endif
 
 	//
